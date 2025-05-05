@@ -6,15 +6,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ths.forEach((th, clickedIndex) => {
     th.addEventListener('click', () => {
-      ths.forEach((header) => {
-        header.style.backgroundColor = '';
-        header.style.color = '';
+      const currentDirection = th.dataset.direction || 'none';
+      let nextDirection;
+
+      if (currentDirection === 'asc') {
+        nextDirection = 'desc';
+      } else {
+        nextDirection = 'asc'; // Default to asc if none or desc
+      }
+
+      ths.forEach((header, index) => {
+        if (index === clickedIndex) {
+          header.dataset.direction = nextDirection;
+          // Оновлюємо візуальний стиль (приклад, можна адаптувати)
+          header.style.backgroundColor = '#d14534';
+          header.style.color = 'white';
+
+          // Можна додати індикатори стрілок ▲ ▼
+          header
+            .querySelectorAll('.sort-indicator')
+            .forEach((ind) => ind.remove()); // Видаляємо старі індикатори
+
+          const indicator = document.createElement('span');
+
+          indicator.classList.add('sort-indicator');
+          indicator.textContent = nextDirection === 'asc' ? ' ▲' : ' ▼';
+          header.appendChild(indicator);
+        } else {
+          delete header.dataset.direction;
+          // Скидаємо стиль для неактивних заголовків
+          header.style.backgroundColor = '';
+          header.style.color = '';
+
+          header
+            .querySelectorAll('.sort-indicator')
+            .forEach((ind) => ind.remove());
+        }
       });
 
-      th.style.backgroundColor = '#d14534';
-
       const columnIndex = clickedIndex;
-
       const rowsArray = Array.from(tbody.querySelectorAll('tr'));
 
       rowsArray.sort((rowA, rowB) => {
@@ -23,18 +53,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const cellB = rowB.children[columnIndex];
         const valueB = cellB.textContent.trim();
 
+        let compareResult;
+
         if (columnIndex === 0 || columnIndex === 1) {
-          return valueA.localeCompare(valueB);
+          compareResult = valueA.localeCompare(valueB);
         } else {
           const numA = parseFloat(valueA.replace(/[$,]/g, ''));
           const numB = parseFloat(valueB.replace(/[$,]/g, ''));
 
-          if (isNaN(numA) || isNaN(numB)) {
-            return valueA.localeCompare(valueB);
+          if (isNaN(numA) && isNaN(numB)) {
+            compareResult = 0;
+          } else if (isNaN(numA)) {
+            compareResult = 1; // Non-numbers go after numbers
+          } else if (isNaN(numB)) {
+            compareResult = -1; // Numbers go before non-numbers
+          } else {
+            compareResult = numA - numB;
           }
-
-          return numA - numB;
         }
+
+        // Якщо напрямок 'desc', інвертуємо результат порівняння
+        return nextDirection === 'desc' ? compareResult * -1 : compareResult;
       });
 
       tbody.innerHTML = '';
